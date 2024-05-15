@@ -1,18 +1,34 @@
-use std::{any, collections::HashMap};
+use std::collections::HashMap;
 
 #[derive(Clone, Debug)]
 struct Variable {
-    name: char,
+    pub name: char,
     productions: Vec<Vec<char>>,
 }
 impl Variable {
-    // fn remove_null_production(&self, nullable_name: char) {
-    //     // Case where there is only 1 production
-    //     let new_prods = vec![];
-    //     self.productions
-    //         .iter()
-    //         .for_each(|chars| chars.iter().for_each(f))
-    // }
+    fn remove_null_production(&mut self, nullable_name: char) {
+        // Case where there is only 1 production
+        let mut new_prods: Vec<Vec<char>> = vec![];
+
+        // For each current production
+        self.productions.iter().for_each(|x| {
+            // Add all productions with nullable prod removed
+            permute_without(x.clone(), &nullable_name)
+                .iter()
+                .for_each(|p| {
+                    if !new_prods.contains(p) {
+                        new_prods.push(p.clone())
+                    }
+                });
+        });
+
+        // Remove the production with just the null symbol
+        self.productions = new_prods
+            .iter()
+            .filter(|x| x.len() > 1 || (x.len() == 1 && x.first().unwrap() != &'#'))
+            .map(|x| x.clone())
+            .collect();
+    }
 }
 
 fn permute_without(chars: Vec<char>, to_remove: &char) -> Vec<Vec<char>> {
@@ -26,10 +42,17 @@ fn permute_without(chars: Vec<char>, to_remove: &char) -> Vec<Vec<char>> {
         if c == to_remove {
             // Remvoe this char from the vec
             let mut new_chars = chars.clone();
-            new_chars.remove(index);
 
-            // Add the case where it is not removed
-            perms.push(new_chars.clone());
+            // Add the case where it is not remove
+            if !perms.contains(&new_chars) {
+                perms.push(new_chars.clone());
+            }
+
+            // Add the case where it is removed
+            new_chars.remove(index);
+            if !perms.contains(&new_chars) {
+                perms.push(new_chars.clone());
+            }
 
             // Recursively remove the rest
             let permuted = permute_without(new_chars, to_remove);
@@ -46,6 +69,7 @@ fn permute_without(chars: Vec<char>, to_remove: &char) -> Vec<Vec<char>> {
     perms
 }
 
+#[derive(Debug)]
 pub struct CFG {
     starting_variable: char,
     variables: HashMap<char, Variable>,
@@ -77,17 +101,17 @@ impl CFG {
     */
     fn is_cnf(&self) -> bool {
         for (_, variable) in &self.variables {
-            for child in &variable.productions {
-                if child.len() == 1 {
+            for production in &variable.productions {
+                if production.len() == 1 {
                     continue;
                 }
 
-                if child.len() > 2 {
+                if production.len() > 2 {
                     return false;
                 }
 
                 // THIS ASSUMES THAT ALL VARIABLES ARE UPPERCASE
-                if !child.iter().all(|x| x.is_uppercase()) {
+                if !production.iter().all(|x| x.is_uppercase()) {
                     return false;
                 }
             }
@@ -106,7 +130,7 @@ impl CFG {
 
         // Step 2: Remove null, unit, and useless productions
         // Step 2a remove null productions
-        // self.remove_null_productions();
+        self.remove_null_productions();
 
         // Step 2b Remove unit productions
 
@@ -139,28 +163,34 @@ impl CFG {
         }
     }
 
-    // fn remove_null_productions(&mut self) {
-    //     self.variables
-    //         .iter()
-    //         .for_each(|(nullable_name, nullable_var)| {
-    //             let contains_null = nullable_var.productions.iter().any(|x| x.contains(&'#'));
-    //             if !contains_null {
-    //                 return;
-    //             }
+    fn remove_null_productions(&mut self) {
+        let nullable_names: Vec<_> = self
+            .variables
+            .iter()
+            .filter_map(|(nullable_name, nullable_var)| {
+                let contains_null = nullable_var.productions.iter().any(|x| x.contains(&'#'));
+                if contains_null {
+                    Some(nullable_name.clone())
+                } else {
+                    None
+                }
+            })
+            .collect();
 
-    //             // Look for any variable whose RHS contains this var
-    //             self.variables
-    //                 .iter()
-    //                 .filter(|(_, containing_var)| {
-    //                     containing_var.productions.iter().any(|x| x.contains(&'#'))
-    //                 })
-    //                 .for_each(|containing_var| {
-    //                     containing_var
-    //                         .1
-    //                         .remove_null_production(nullable_name.clone())
-    //                 });
-    //         });
-    // }
+        for nullable_name in nullable_names {
+            self.variables
+                .iter_mut()
+                .filter(|(_, containing_var)| {
+                    containing_var
+                        .productions
+                        .iter()
+                        .any(|x| x.contains(&nullable_name))
+                })
+                .for_each(|(_, containing_var)| {
+                    containing_var.remove_null_production(nullable_name.clone())
+                });
+        }
+    }
 }
 
 fn create_var_refs(lines: Vec<&str>) -> (char, HashMap<char, Variable>) {

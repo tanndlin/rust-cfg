@@ -5,6 +5,9 @@ use crate::cfg::CFG;
 fn main() {
     let cfg = CFG::new();
 
+    // Print the cfg
+    println!("{:#?}", cfg);
+
     // Read a string from input.txt
     let input = std::fs::read_to_string("input.txt").unwrap();
     let input = input.trim();
