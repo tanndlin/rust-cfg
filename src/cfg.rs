@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
 #[derive(Clone, Debug)]
 struct Variable {
@@ -69,7 +69,7 @@ fn permute_without(strings: Vec<String>, to_remove: &str) -> Vec<Vec<String>> {
     perms
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct CFG {
     starting_variable: String,
     variables: HashMap<String, Variable>,
@@ -113,6 +113,7 @@ impl CFG {
         self.remove_useless_productions();
 
         // Step 3: Remove terminals from RHS if it exists with a variable
+        self.isolate_terminals();
 
         // Step 4: Remove variables with more than 2 variables
     }
@@ -231,6 +232,70 @@ impl CFG {
         // Remove all variables that are not reachable
         self.variables
             .retain(|name, _| reachable_vars.contains(name));
+    }
+
+    fn isolate_terminals(&mut self) {
+        let variable_names: HashSet<_> = self.variables.keys().cloned().collect();
+        let mut to_insert = Vec::new();
+        let self_clone = self.clone();
+
+        for (_, var) in self.variables.iter_mut() {
+            let mut new_prod: Vec<String>;
+            for i in 0..var.productions.len() {
+                let p = &mut var.productions[i];
+
+                // If some are terminals and some are variables
+                // This is really stupid to clone self but im fighting the borrow checker
+                if !self_clone.is_mixed(p) {
+                    continue;
+                }
+
+                // Replace the terminal with a new variable
+                new_prod = p.clone();
+                p.iter().enumerate().for_each(|(i, s)| {
+                    if !variable_names.contains(s) {
+                        // Create the new var to hold this terminal
+                        let new_name = format!("{}{}", s, "1");
+                        to_insert.push((
+                            new_name.clone(),
+                            Variable {
+                                name: new_name.clone(),
+                                productions: vec![vec![s.clone()]],
+                            },
+                        ));
+
+                        // Remove the prod and replace with the new var
+                        new_prod.remove(i);
+                        new_prod.insert(i, new_name);
+                    }
+                });
+
+                *p = new_prod;
+            }
+        }
+
+        for (new_name, variable) in to_insert {
+            self.variables.insert(new_name, variable); // <-- mutable borrow here
+        }
+    }
+
+    fn is_mixed(&self, strings: &Vec<String>) -> bool {
+        if strings.len() == 1 {
+            return false;
+        }
+
+        let mut is_terminal = false;
+        let mut is_variable = false;
+
+        for s in strings {
+            if self.is_variable(s.as_str()) {
+                is_variable = true;
+            } else {
+                is_terminal = true;
+            }
+        }
+
+        is_terminal && is_variable
     }
 }
 

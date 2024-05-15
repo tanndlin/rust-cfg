@@ -1,5 +1,2 @@
 S -> a A
-A -> B
-B -> C | b | f
-C -> c
-D -> f u c k
+A -> a
