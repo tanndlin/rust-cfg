@@ -1,4 +1,4 @@
-S -> ABAC
-A -> aA | #
-B -> bB | #
+S -> aA
+A -> B
+B -> C | b | f
 C -> c

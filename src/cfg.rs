@@ -95,8 +95,8 @@ impl CFG {
     // pub fn test(&self, string: &str) -> bool {}
     /*
     3 Rules for CNF:
-    1. All variables have at most 2 children
-    2. All variables have at least 1 child
+    1. All variables have at most 2 variables
+    2. If there is one production, it must be a terminal
     3. All children are either variables or terminals
     */
     fn is_cnf(&self) -> bool {
@@ -106,12 +106,17 @@ impl CFG {
                     continue;
                 }
 
-                if production.len() > 2 {
+                if production.len() > 2
+                    && production.iter().filter(|x| x.is_uppercase()).count() > 2
+                {
                     return false;
                 }
 
                 // THIS ASSUMES THAT ALL VARIABLES ARE UPPERCASE
-                if !production.iter().all(|x| x.is_uppercase()) {
+                let all_uppercase = production.iter().all(|x| x.is_uppercase());
+                let all_lowercase = production.iter().all(|x| x.is_lowercase());
+
+                if !(all_uppercase || all_lowercase) {
                     return false;
                 }
             }
@@ -133,6 +138,7 @@ impl CFG {
         self.remove_null_productions();
 
         // Step 2b Remove unit productions
+        self.remove_unit_productions();
 
         // Step 2c Remove useless productions
 
@@ -191,6 +197,31 @@ impl CFG {
                 });
         }
     }
+
+    fn remove_unit_productions(&mut self) {
+        let mut unit_production_pairs: Vec<(char, char)> = vec![];
+        self.variables.iter().for_each(|(name, var)| {
+            var.productions.iter().for_each(|production| {
+                if production.len() == 1 && production[0].is_uppercase() {
+                    unit_production_pairs.push((name.clone(), production[0]));
+                }
+            });
+        });
+
+        // Add all the productions of the result to the parent and remove the unit production
+        for (unit_name, unit_prod) in unit_production_pairs {
+            let result_prods = self.get_variable(unit_prod).productions.clone();
+            let parent_prod = &mut self.variables.get_mut(&unit_name).unwrap().productions;
+            for prod in result_prods {
+                if !parent_prod.contains(&prod) {
+                    parent_prod.push(prod);
+                }
+            }
+
+            // Remove the unit production
+            parent_prod.retain(|x| x.len() != 1 || x[0] != unit_prod);
+        }
+    }
 }
 
 fn create_var_refs(lines: Vec<&str>) -> (char, HashMap<char, Variable>) {
@@ -232,10 +263,15 @@ fn read_cfg() -> (char, HashMap<char, Variable>) {
 
 #[cfg(test)]
 #[test]
-fn test_remove_null_production() {
+fn test_permute_without() {
     let input = vec!['A', 'B', 'A', 'C'];
     let output = permute_without(input, &'A');
-    let expected = vec![vec!['B', 'A', 'C'], vec!['B', 'C'], vec!['A', 'B', 'C']];
+    let expected = vec![
+        vec!['A', 'B', 'A', 'C'],
+        vec!['B', 'A', 'C'],
+        vec!['B', 'C'],
+        vec!['A', 'B', 'C'],
+    ];
 
     assert_eq!(output, expected);
 }
