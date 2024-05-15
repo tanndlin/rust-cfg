@@ -1,0 +1,30 @@
+{
+    "restoreTerminals.terminals": [
+        {
+            "splitTerminals": [
+                {
+                    "name": "Run",
+                    "commands": [
+                        "watchexec -e rs,tan -r cargo run"
+                    ]
+                },
+                {
+                    "name": "Test",
+                    "commands": [
+                        "watchexec -e rs -r cargo test"
+                    ]
+                }
+            ]
+        },
+        {
+            "splitTerminals": [
+                {
+                    "name": "Git",
+                    "commands": [
+                        "git st"
+                    ],
+                }
+            ]
+        }
+    ],
+}
