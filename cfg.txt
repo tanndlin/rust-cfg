@@ -1,5 +1,5 @@
-S -> aA
+S -> a A
 A -> B
 B -> C | b | f
 C -> c
-D -> fuck
+D -> f u c k
