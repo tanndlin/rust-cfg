@@ -116,6 +116,7 @@ impl CFG {
         self.isolate_terminals();
 
         // Step 4: Remove variables with more than 2 variables
+        self.remove_long_productions();
     }
 
     fn remove_start_symbol(&mut self) {
@@ -296,6 +297,39 @@ impl CFG {
         }
 
         is_terminal && is_variable
+    }
+
+    // This will follow the similar pattern as isolate_terminals
+    fn remove_long_productions(&mut self) {
+        let mut to_insert = Vec::new();
+        for (_, var) in self.variables.iter_mut() {
+            for i in 0..var.productions.len() {
+                let p = &mut var.productions[i];
+
+                // If the length is longer than 2
+                if p.len() <= 2 {
+                    continue;
+                }
+
+                // Replace 2 of the variables with a new variable
+                let last2 = p.split_off(p.len() - 2);
+                let new_name = last2.join("");
+                to_insert.push((
+                    new_name.clone(),
+                    Variable {
+                        name: new_name.clone(),
+                        productions: vec![last2],
+                    },
+                ));
+
+                // Replace with the new var
+                p.push(new_name);
+            }
+        }
+
+        for (new_name, variable) in to_insert {
+            self.variables.insert(new_name, variable);
+        }
     }
 }
 
