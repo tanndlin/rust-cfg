@@ -6,7 +6,8 @@ fn main() {
     let cfg = CFG::new();
 
     // Print the cfg
-    println!("{:#?}", cfg);
+    println!("CFG:");
+    println!("{}", cfg.to_string());
 
     // Read a string from input.txt
     let input = std::fs::read_to_string("input.txt").unwrap();

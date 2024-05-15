@@ -96,6 +96,24 @@ impl CFG {
         self.variables.contains_key(name)
     }
 
+    pub fn to_string(&self) -> String {
+        let mut output = String::new();
+
+        output.push_str(&format!("Starting Variable: {}\n", self.starting_variable));
+        for (_, var) in self.variables.iter() {
+            output.push_str(&format!("{} -> ", var.name));
+            for (i, prod) in var.productions.iter().enumerate() {
+                if i != 0 {
+                    output.push_str(" | ");
+                }
+                output.push_str(&prod.join(" "));
+            }
+            output.push_str("\n");
+        }
+
+        output
+    }
+
     // pub fn test(&self, string: &str) -> bool {}
 
     fn to_cnf(&mut self) {
@@ -256,7 +274,7 @@ impl CFG {
                 p.iter().enumerate().for_each(|(i, s)| {
                     if !variable_names.contains(s) {
                         // Create the new var to hold this terminal
-                        let new_name = format!("{}{}", s, "1");
+                        let new_name = format!("{}{}", s, "`");
                         to_insert.push((
                             new_name.clone(),
                             Variable {
