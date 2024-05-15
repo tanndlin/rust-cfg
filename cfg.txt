@@ -2,3 +2,4 @@ S -> aA
 A -> B
 B -> C | b | f
 C -> c
+D -> fuck

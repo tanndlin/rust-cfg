@@ -141,6 +141,7 @@ impl CFG {
         self.remove_unit_productions();
 
         // Step 2c Remove useless productions
+        self.remove_useless_productions();
 
         // Step 3: Remove terminals from RHS if it exists with a variable
         // Step 4: Remove variables with more than 2 variables
@@ -221,6 +222,42 @@ impl CFG {
             // Remove the unit production
             parent_prod.retain(|x| x.len() != 1 || x[0] != unit_prod);
         }
+    }
+
+    fn remove_useless_productions(&mut self) {
+        let mut reachable_vars: Vec<char> = vec![self.starting_variable];
+
+        loop {
+            let mut new_reachable_vars = vec![];
+
+            for var in &reachable_vars {
+                let var_prods = self.get_variable(*var).productions.clone();
+                for prod in var_prods {
+                    for symbol in prod {
+                        if symbol.is_uppercase()
+                            && !reachable_vars.contains(&symbol)
+                            && !new_reachable_vars.contains(&symbol)
+                        {
+                            new_reachable_vars.push(symbol);
+                        }
+                    }
+                }
+            }
+
+            if new_reachable_vars.len() == 0 {
+                break;
+            }
+
+            new_reachable_vars.iter().for_each(|x| {
+                if !reachable_vars.contains(x) {
+                    reachable_vars.push(*x);
+                }
+            });
+        }
+
+        // Remove all variables that are not reachable
+        self.variables
+            .retain(|name, _| reachable_vars.contains(name));
     }
 }
 
