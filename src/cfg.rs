@@ -97,37 +97,6 @@ impl CFG {
     }
 
     // pub fn test(&self, string: &str) -> bool {}
-    /*
-    3 Rules for CNF:
-    1. All variables have at most 2 variables
-    2. If there is one production, it must be a terminal
-    3. All children are either variables or terminals
-    */
-    fn is_cnf(&self) -> bool {
-        for (_, variable) in &self.variables {
-            for production in &variable.productions {
-                if production.len() == 1 {
-                    continue;
-                }
-
-                if production.len() > 2
-                    && production.iter().filter(|x| self.is_variable(x)).count() > 2
-                {
-                    return false;
-                }
-
-                // THIS ASSUMES THAT ALL VARIABLES ARE UPPERCASE
-                let all_uppercase = production.iter().all(|x| self.is_variable(x));
-                let all_lowercase = production.iter().all(|x| !self.is_variable(x));
-
-                if !(all_uppercase || all_lowercase) {
-                    return false;
-                }
-            }
-        }
-
-        true
-    }
 
     fn to_cnf(&mut self) {
         // Step 1: Remove the start symbol from the RHS
