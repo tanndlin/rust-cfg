@@ -263,9 +263,8 @@ impl CFG {
             for i in 0..var.productions.len() {
                 let p = &mut var.productions[i];
 
-                // If some are terminals and some are variables
-                // This is really stupid to clone self but im fighting the borrow checker
-                if !self_clone.is_mixed(p) {
+                // Make sure terminals appear on their own
+                if !self_clone.is_isolated(p) {
                     continue;
                 }
 
@@ -298,23 +297,19 @@ impl CFG {
         }
     }
 
-    fn is_mixed(&self, strings: &Vec<String>) -> bool {
+    // Make sure that if there is more than one item, its not a terminal
+    fn is_isolated(&self, strings: &Vec<String>) -> bool {
         if strings.len() == 1 {
             return false;
         }
 
-        let mut is_terminal = false;
-        let mut is_variable = false;
-
         for s in strings {
-            if self.is_variable(s.as_str()) {
-                is_variable = true;
-            } else {
-                is_terminal = true;
+            if !self.is_variable(s.as_str()) {
+                return true;
             }
         }
 
-        is_terminal && is_variable
+        return false;
     }
 
     // This will follow the similar pattern as isolate_terminals
