@@ -69,6 +69,41 @@ fn permute_without(strings: Vec<String>, to_remove: &str) -> Vec<Vec<String>> {
     perms
 }
 
+pub struct FlatCFG {
+    starting_variable: String,
+    productions: Vec<Vec<String>>,
+}
+
+impl FlatCFG {
+    // Idk why its like this, this is stolen code
+    // I think its to prefer shorter productions
+    fn find_index(&self, symbol: &String) -> usize {
+        for (i, rule) in self.productions.iter().enumerate() {
+            if rule.len() == 2 {
+                if symbol == &rule[0] {
+                    return i;
+                }
+            }
+        }
+
+        for (i, rule) in self.productions.iter().enumerate() {
+            if symbol == &rule[0] {
+                return i;
+            }
+        }
+
+        panic!("Expected to find index for variable: {}", symbol);
+    }
+
+    #[allow(dead_code)]
+    pub fn to_string(&self) {
+        println!("Starting Variable: {}", self.starting_variable);
+        for rule in &self.productions {
+            println!("{}", rule.join(" "));
+        }
+    }
+}
+
 #[derive(Debug, Clone)]
 pub struct CFG {
     starting_variable: String,
@@ -88,6 +123,26 @@ impl CFG {
         cfg
     }
 
+    fn to_flat_cfg(&self) -> FlatCFG {
+        let mut productions = vec![];
+
+        for (name, v) in &self.variables {
+            for prod in &v.productions {
+                let mut rule = vec![name.clone()];
+                for s in prod {
+                    rule.push(s.clone());
+                }
+
+                productions.push(rule);
+            }
+        }
+
+        FlatCFG {
+            starting_variable: self.starting_variable.clone(),
+            productions,
+        }
+    }
+
     fn get_variable(&self, name: &str) -> &Variable {
         self.variables.get(name).unwrap()
     }
@@ -96,6 +151,7 @@ impl CFG {
         self.variables.contains_key(name)
     }
 
+    #[allow(dead_code)]
     pub fn to_string(&self) -> String {
         let mut output = String::new();
 
@@ -114,7 +170,56 @@ impl CFG {
         output
     }
 
-    // pub fn test(&self, string: &str) -> bool {}
+    // Tests if the string exists using the CYK algorithm
+    pub fn test(&self, input: &str) -> bool {
+        let n = input.len();
+
+        // The number of rules
+        let flat = self.to_flat_cfg();
+        let r = flat.productions.len();
+
+        let mut table = vec![vec![vec![false; r]; n]; n];
+        // let backpointing = vec![vec![vec![vec![]]; n]; n];
+
+        for s in 0..n {
+            let a = input.chars().nth(s).unwrap().to_string();
+            // Find a R_v s.t. R_v -> a_s
+            for v in 0..r {
+                let rule = &flat.productions[v];
+                if rule.len() == 2 {
+                    if rule[1] == a {
+                        let index = flat.find_index(&rule[0]);
+                        table[s][0][index] = true;
+                    }
+                }
+            }
+        }
+
+        // Length of span
+        for l in 1..n {
+            // Start of span
+            for s in 0..(n - l) {
+                // Partition of span
+                for p in 0..l {
+                    for rule in &flat.productions {
+                        if rule.len() > 2 {
+                            let a = flat.find_index(&rule[0]);
+                            let b = flat.find_index(&rule[1]);
+                            let c = flat.find_index(&rule[2]);
+
+                            if table[s][p][b] && table[s + p + 1][l - p - 1][c] {
+                                table[s][l][a] = true;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        let start_symbol_index = flat.find_index(&self.starting_variable);
+
+        return table[0][n - 1][start_symbol_index];
+    }
 
     fn to_cnf(&mut self) {
         // Step 1: Remove the start symbol from the RHS
