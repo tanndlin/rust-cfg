@@ -1,5 +1,8 @@
 mod cfg;
 
+#[cfg(test)]
+mod test;
+
 use crate::cfg::CFG;
 
 fn main() {

@@ -1,4 +1,4 @@
-use std::collections::{HashMap, HashSet};
+use std::collections::HashSet;
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 struct Production {
@@ -121,6 +121,9 @@ impl CFG {
     // Tests if the string exists using the CYK algorithm
     pub fn test(&self, input: &str) -> bool {
         let n = input.len();
+        if n == 0 {
+            return false;
+        }
 
         // The number of rules
         let r = self.productions.len();
