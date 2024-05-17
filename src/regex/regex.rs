@@ -1,7 +1,8 @@
+use super::parser::*;
 use super::patterns::*;
 
 pub struct Regex {
-    patterns: Vec<Box<dyn TestablePattern>>,
+    pub patterns: Vec<Box<dyn TestablePattern>>,
 }
 
 pub struct Match {
@@ -36,59 +37,6 @@ impl Regex {
 
         true
     }
-}
-
-fn parse_regex(pattern: &str) -> Regex {
-    let mut regex = Regex { patterns: vec![] };
-    let chars: Vec<_> = pattern.chars().collect();
-
-    let mut i = 0;
-    while i < chars.len() {
-        let c = chars[i];
-        if i == chars.len() - 1 || chars[i + 1] != '{' {
-            regex.patterns.push(Box::new(ExactAmountPattern {
-                token_selector: Box::new(SingleCharSelector { token: c }),
-                amount: 1,
-            }));
-
-            i += 1;
-            continue;
-        }
-
-        let token = chars[i];
-        i += 1;
-
-        consume_char(chars[i], '{', &mut i);
-        let mut min_str = String::new();
-        while chars[i].is_ascii_digit() {
-            min_str.push(chars[i]);
-            i += 1;
-        }
-
-        consume_char(chars[i], ',', &mut i);
-        let mut max_str = String::new();
-        while chars[i].is_ascii_digit() {
-            max_str.push(chars[i]);
-            i += 1;
-        }
-        consume_char(chars[i], '}', &mut i);
-
-        regex.patterns.push(Box::new(BoundedAmountPattern {
-            tokens: vec![token],
-            min_amount: min_str.parse::<usize>().unwrap(),
-            max_amount: max_str.parse::<usize>().unwrap(),
-        }))
-    }
-
-    regex
-}
-
-fn consume_char(input: char, expected: char, index: &mut usize) {
-    if input != expected {
-        panic!("Expected {}. Got {}", expected, input);
-    }
-
-    *index += 1;
 }
 
 macro_rules! match_pattern {
