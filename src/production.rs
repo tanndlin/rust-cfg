@@ -54,9 +54,7 @@ fn permute_without(strings: Vec<String>, to_remove: &str) -> Vec<Vec<String>> {
             let permuted = permute_without(new_chars, to_remove);
 
             // Add each case to the perms
-            permuted.iter().for_each(|x| {
-                perms.insert(x.clone());
-            });
+            perms.extend(permuted);
         }
     });
 
