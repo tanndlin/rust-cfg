@@ -125,3 +125,20 @@ impl TestablePattern for AtLeastOnePattern {
         (amount_matched > 0, amount_matched)
     }
 }
+
+pub struct OptionalPattern {
+    pub token_selector: Box<dyn TokenSelector>,
+}
+
+impl TestablePattern for OptionalPattern {
+    fn test(&self, input: &str) -> (bool, usize) {
+        let c = input.chars().nth(0).unwrap_or('\0');
+        let matched = self.token_selector.contains(c);
+
+        if matched {
+            (true, 1)
+        } else {
+            (true, 0)
+        }
+    }
+}

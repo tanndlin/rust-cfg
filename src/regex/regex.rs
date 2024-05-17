@@ -68,4 +68,6 @@ mod test {
     match_pattern!(matches_any_amount3, "01*2", "011112", true);
     match_pattern!(matches_atleast_one1, "0+", "0", true);
     match_pattern!(matches_atleast_one2, "0+", "00", true);
+    match_pattern!(matches_optional1, "10?1", "101", true);
+    match_pattern!(matches_optional2, "10?1", "11", true);
 }

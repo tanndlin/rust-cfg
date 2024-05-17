@@ -70,6 +70,10 @@ fn parse_amount_specifier(
             *i += 1;
             Box::new(AtLeastOnePattern { token_selector })
         }
+        '?' => {
+            *i += 1;
+            Box::new(OptionalPattern { token_selector })
+        }
         '{' => {
             let (min, max) = parse_number_specifier(chars, i);
             Box::new(BoundedAmountPattern {
