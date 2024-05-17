@@ -78,13 +78,8 @@ pub struct CFG {
 }
 
 impl CFG {
-    pub fn new() -> CFG {
-        let (starting_variable, productions) = read_cfg();
-        let mut cfg = CFG {
-            starting_variable,
-            productions,
-        };
-
+    pub fn new(input: &str) -> CFG {
+        let mut cfg = read_cfg(input);
         cfg.to_cnf();
 
         cfg
@@ -393,7 +388,9 @@ impl CFG {
     }
 }
 
-fn create_var_refs(lines: Vec<&str>) -> (String, Vec<Production>) {
+fn read_cfg(input: &str) -> CFG {
+    let lines: Vec<&str> = input.lines().collect();
+
     let mut prods: Vec<Production> = Vec::new();
     let starting_variable = lines[0].split(" ").next().unwrap().to_string();
 
@@ -418,12 +415,10 @@ fn create_var_refs(lines: Vec<&str>) -> (String, Vec<Production>) {
         }
     }
 
-    (starting_variable, prods)
-}
-
-fn read_cfg() -> (String, Vec<Production>) {
-    let file_data = std::fs::read_to_string("cfg.txt").unwrap();
-    create_var_refs(file_data.lines().collect())
+    CFG {
+        starting_variable,
+        productions: prods,
+    }
 }
 
 #[cfg(test)]

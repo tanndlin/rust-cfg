@@ -3,7 +3,9 @@ mod cfg;
 use crate::cfg::CFG;
 
 fn main() {
-    let cfg = CFG::new();
+    let cfg_txt = std::fs::read_to_string("cfg.txt").unwrap();
+
+    let cfg = CFG::new(&cfg_txt);
 
     // Read a string from input.txt
     let input = std::fs::read_to_string("input.txt").unwrap();
