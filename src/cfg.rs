@@ -274,6 +274,9 @@ impl CFG {
         productions_to_add
             .iter()
             .for_each(|p| self.productions.push(p.clone()));
+
+        // We may have created new unit productions
+        self.remove_unit_productions();
     }
 
     fn remove_useless_productions(&mut self) {
