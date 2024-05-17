@@ -1,3 +1,4 @@
+use rand::seq::SliceRandom;
 use std::collections::HashSet;
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
@@ -388,6 +389,36 @@ impl CFG {
         for prod in to_insert {
             self.productions.push(prod);
         }
+    }
+
+    pub fn generate_sample_langauge(&self, n: usize) -> Vec<String> {
+        let mut sample_strings = Vec::new();
+        for _ in 0..n {
+            let sample = self.generate_sample_string(vec![self.starting_variable.clone()]);
+            sample_strings.push(sample);
+        }
+
+        sample_strings
+    }
+
+    fn generate_sample_string(&self, s: Vec<String>) -> String {
+        for (i, c) in s.iter().enumerate() {
+            if self.is_variable(c) {
+                let prods: Vec<_> = self.productions.iter().filter(|p| &p.symbol == c).collect();
+
+                // Choose a random production
+                let prod = prods.choose(&mut rand::thread_rng()).unwrap();
+
+                // Replace the variable with the production
+                // Insert the vector from prod.value into the new_s
+                let mut new_s = s.clone();
+                new_s.splice(i..i + 1, prod.value.clone());
+
+                return self.generate_sample_string(new_s);
+            }
+        }
+
+        return s.join("");
     }
 }
 

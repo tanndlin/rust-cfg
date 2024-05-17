@@ -17,4 +17,7 @@ fn main() {
     // Test the string against the CFG
     println!("Testing string: {}", input);
     println!("Result: {}", cfg.test(input));
+
+    let sample = cfg.generate_sample_langauge(5);
+    println!("Sample: {:?}", sample);
 }
