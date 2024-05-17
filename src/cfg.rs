@@ -1,33 +1,35 @@
 use std::collections::{HashMap, HashSet};
 
-#[derive(Clone, Debug)]
-struct Variable {
-    pub name: String,
-    productions: Vec<Vec<String>>,
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
+struct Production {
+    pub symbol: String,
+    value: Vec<String>,
 }
-impl Variable {
-    fn remove_null_production(&mut self, nullable_name: &str) {
+
+impl Production {
+    fn is_null(&self) -> bool {
+        self.value.len() == 1 && self.value[0] == "#"
+    }
+
+    fn remove_null_production(&self, nullable_name: &str) -> Vec<Production> {
         // Case where there is only 1 production
-        let mut new_prods: Vec<Vec<String>> = vec![];
+        let mut new_prods: Vec<Production> = vec![];
 
-        // For each current production
-        self.productions.iter().for_each(|x| {
-            // Add all productions with nullable prod removed
-            permute_without(x.clone(), &nullable_name)
-                .iter()
-                .for_each(|p| {
-                    if !new_prods.contains(p) {
-                        new_prods.push(p.clone())
-                    }
-                });
-        });
-
-        // Remove the production with just the null symbol
-        self.productions = new_prods
+        // Add all productions with nullable prod removed
+        permute_without(self.value.clone(), &nullable_name)
             .iter()
-            .filter(|x| x.len() > 1 || (x.len() == 1 && x[0] != "#"))
-            .map(|x| x.clone())
-            .collect();
+            .filter(|vec| !vec.is_empty())
+            .map(|vec| Production {
+                symbol: self.symbol.clone(),
+                value: vec.clone(),
+            })
+            .for_each(|p| {
+                if !new_prods.contains(&p) {
+                    new_prods.push(p);
+                }
+            });
+
+        new_prods.into_iter().collect()
     }
 }
 
@@ -69,53 +71,18 @@ fn permute_without(strings: Vec<String>, to_remove: &str) -> Vec<Vec<String>> {
     perms
 }
 
-pub struct FlatCFG {
-    starting_variable: String,
-    productions: Vec<Vec<String>>,
-}
-
-impl FlatCFG {
-    // Idk why its like this, this is stolen code
-    // I think its to prefer shorter productions
-    fn find_index(&self, symbol: &String) -> usize {
-        for (i, rule) in self.productions.iter().enumerate() {
-            if rule.len() == 2 {
-                if symbol == &rule[0] {
-                    return i;
-                }
-            }
-        }
-
-        for (i, rule) in self.productions.iter().enumerate() {
-            if symbol == &rule[0] {
-                return i;
-            }
-        }
-
-        panic!("Expected to find index for variable: {}", symbol);
-    }
-
-    #[allow(dead_code)]
-    pub fn to_string(&self) {
-        println!("Starting Variable: {}", self.starting_variable);
-        for rule in &self.productions {
-            println!("{}", rule.join(" "));
-        }
-    }
-}
-
 #[derive(Debug, Clone)]
 pub struct CFG {
     starting_variable: String,
-    variables: HashMap<String, Variable>,
+    productions: Vec<Production>,
 }
 
 impl CFG {
     pub fn new() -> CFG {
-        let (starting_variable, variables) = read_cfg();
+        let (starting_variable, productions) = read_cfg();
         let mut cfg = CFG {
             starting_variable,
-            variables,
+            productions,
         };
 
         cfg.to_cnf();
@@ -123,51 +90,37 @@ impl CFG {
         cfg
     }
 
-    fn to_flat_cfg(&self) -> FlatCFG {
-        let mut productions = vec![];
-
-        for (name, v) in &self.variables {
-            for prod in &v.productions {
-                let mut rule = vec![name.clone()];
-                for s in prod {
-                    rule.push(s.clone());
+    fn find_index(&self, symbol: &String) -> usize {
+        for (i, prod) in self.productions.iter().enumerate() {
+            if prod.value.len() == 2 {
+                if symbol == &prod.symbol {
+                    return i;
                 }
-
-                productions.push(rule);
             }
         }
 
-        FlatCFG {
-            starting_variable: self.starting_variable.clone(),
-            productions,
+        for (i, prod) in self.productions.iter().enumerate() {
+            if symbol == &prod.symbol {
+                return i;
+            }
         }
-    }
 
-    fn get_variable(&self, name: &str) -> &Variable {
-        self.variables.get(name).unwrap()
+        panic!("Expected to find index for variable: {}", symbol);
     }
 
     fn is_variable(&self, name: &str) -> bool {
-        self.variables.contains_key(name)
+        self.productions
+            .iter()
+            .any(|p| p.symbol == name.to_string())
     }
 
     #[allow(dead_code)]
-    pub fn to_string(&self) -> String {
-        let mut output = String::new();
-
-        output.push_str(&format!("Starting Variable: {}\n", self.starting_variable));
-        for (_, var) in self.variables.iter() {
-            output.push_str(&format!("{} -> ", var.name));
-            for (i, prod) in var.productions.iter().enumerate() {
-                if i != 0 {
-                    output.push_str(" | ");
-                }
-                output.push_str(&prod.join(" "));
-            }
-            output.push_str("\n");
+    pub fn print(&self) {
+        println!("Starting Variable: {}", self.starting_variable);
+        for prod in self.productions.iter() {
+            print!("{} -> ", prod.symbol);
+            println!("{}", prod.value.join(" ").as_str());
         }
-
-        output
     }
 
     // Tests if the string exists using the CYK algorithm
@@ -175,8 +128,7 @@ impl CFG {
         let n = input.len();
 
         // The number of rules
-        let flat = self.to_flat_cfg();
-        let r = flat.productions.len();
+        let r = self.productions.len();
 
         let mut table = vec![vec![vec![false; r]; n]; n];
         // let backpointing = vec![vec![vec![vec![]]; n]; n];
@@ -185,10 +137,10 @@ impl CFG {
             let a = input.chars().nth(s).unwrap().to_string();
             // Find a R_v s.t. R_v -> a_s
             for v in 0..r {
-                let rule = &flat.productions[v];
-                if rule.len() == 2 {
-                    if rule[1] == a {
-                        let index = flat.find_index(&rule[0]);
+                let prod = &self.productions[v];
+                if prod.value.len() == 1 {
+                    if prod.value[0] == a {
+                        let index = self.find_index(&prod.symbol);
                         table[s][0][index] = true;
                     }
                 }
@@ -201,11 +153,11 @@ impl CFG {
             for s in 0..(n - l) {
                 // Partition of span
                 for p in 0..l {
-                    for rule in &flat.productions {
-                        if rule.len() > 2 {
-                            let a = flat.find_index(&rule[0]);
-                            let b = flat.find_index(&rule[1]);
-                            let c = flat.find_index(&rule[2]);
+                    for prod in &self.productions {
+                        if prod.value.len() == 2 {
+                            let a = self.find_index(&prod.symbol);
+                            let b = self.find_index(&prod.value[0]);
+                            let c = self.find_index(&prod.value[1]);
 
                             if table[s][p][b] && table[s + p + 1][l - p - 1][c] {
                                 table[s][l][a] = true;
@@ -216,8 +168,7 @@ impl CFG {
             }
         }
 
-        let start_symbol_index = flat.find_index(&self.starting_variable);
-
+        let start_symbol_index = self.find_index(&self.starting_variable);
         return table[0][n - 1][start_symbol_index];
     }
 
@@ -243,162 +194,160 @@ impl CFG {
     }
 
     fn remove_start_symbol(&mut self) {
-        let contains_start = self.variables.iter().any(|(_, variable)| {
-            variable
-                .productions
-                .iter()
-                .any(|x| x.contains(&self.starting_variable))
-        });
+        let contains_start = self
+            .productions
+            .iter()
+            .any(|prod| prod.value.contains(&self.starting_variable));
 
         // TODO We need to smartly generate variables later
         if contains_start {
             let old_starting_var = self.starting_variable.clone();
 
-            self.starting_variable = "Z".to_string();
-            self.variables.insert(
-                self.starting_variable.clone(),
-                Variable {
-                    name: self.starting_variable.clone(),
-                    productions: vec![vec![old_starting_var]],
-                },
-            );
+            self.starting_variable = "S`".to_string();
+            self.productions.push(Production {
+                symbol: self.starting_variable.clone(),
+                value: vec![old_starting_var],
+            });
         }
     }
 
     fn remove_null_productions(&mut self) {
         let nullable_names: Vec<_> = self
-            .variables
+            .productions
             .iter()
-            .filter_map(|(nullable_name, nullable_var)| {
-                let contains_null = nullable_var
-                    .productions
-                    .iter()
-                    .any(|x| x.contains(&"#".to_string()));
-                if contains_null {
-                    Some(nullable_name.clone())
-                } else {
-                    None
-                }
-            })
+            .filter(|p| p.is_null())
+            .map(|p| p.symbol.clone())
             .collect();
 
         for nullable_name in nullable_names {
-            self.variables
-                .iter_mut()
-                .filter(|(_, containing_var)| {
-                    containing_var
-                        .productions
-                        .iter()
-                        .any(|x| x.contains(&nullable_name))
-                })
-                .for_each(|(_, containing_var)| {
-                    containing_var.remove_null_production(nullable_name.clone().as_str())
-                });
+            let new_prods: Vec<Production> = self
+                .productions
+                .iter()
+                .filter(|prod| prod.value.contains(&nullable_name))
+                .flat_map(|prod| prod.remove_null_production(&nullable_name))
+                .collect();
+
+            new_prods.iter().for_each(|p| {
+                if !self.productions.contains(p) {
+                    self.productions.push(p.clone())
+                }
+            });
         }
+
+        self.productions.retain(|p| !p.is_null());
     }
 
     fn remove_unit_productions(&mut self) {
         let mut unit_production_pairs: Vec<(String, String)> = vec![];
-        self.variables.iter().for_each(|(name, var)| {
-            var.productions.iter().for_each(|production| {
-                if production.len() == 1 && self.is_variable(production[0].as_str()) {
-                    unit_production_pairs.push((name.clone(), production[0].clone()));
-                }
-            });
+        let mut productions_to_add: Vec<Production> = vec![];
+
+        self.productions.iter().for_each(|prod| {
+            if prod.value.len() == 1 && self.is_variable(prod.value[0].as_str()) {
+                unit_production_pairs.push((prod.symbol.clone(), prod.value[0].clone()))
+            }
         });
 
         // Add all the productions of the result to the parent and remove the unit production
-        for (unit_name, unit_prod) in unit_production_pairs {
-            let result_prods = self.get_variable(unit_prod.as_str()).productions.clone();
-            let parent_prod = &mut self.variables.get_mut(&unit_name).unwrap().productions;
-            for prod in result_prods {
-                if !parent_prod.contains(&prod) {
-                    parent_prod.push(prod);
-                }
+        for (unit_name, unit_prod) in unit_production_pairs.clone() {
+            let productions_from_unit = self.productions.iter().filter(|p| p.symbol == unit_prod);
+            for prod in productions_from_unit {
+                productions_to_add.push(Production {
+                    symbol: unit_name.clone(),
+                    value: prod.value.clone(),
+                })
+            }
+        }
+
+        let should_remove = |p: &Production| -> bool {
+            if p.value.len() > 1 {
+                return false;
             }
 
-            // Remove the unit production
-            parent_prod.retain(|x| x.len() != 1 || x[0] != unit_prod);
-        }
+            // Check if name and value are in unit_production_pairs
+            return unit_production_pairs
+                .iter()
+                .any(|(name, value)| &p.symbol == name && &p.value[0] == value);
+        };
+
+        // Remove the unit production
+        self.productions.retain(|p| !should_remove(p));
+
+        productions_to_add
+            .iter()
+            .for_each(|p| self.productions.push(p.clone()));
     }
 
     fn remove_useless_productions(&mut self) {
         let mut reachable_vars: Vec<String> = vec![self.starting_variable.clone()];
 
         loop {
-            let mut new_reachable_vars = vec![];
+            let mut new_reachable_vars: Vec<String> = vec![];
 
-            for var in &reachable_vars {
-                let var_prods = self.get_variable(var.as_str()).productions.clone();
-                for prod in var_prods {
-                    for symbol in prod {
-                        if self.is_variable(symbol.as_str())
-                            && !reachable_vars.contains(&symbol)
-                            && !new_reachable_vars.contains(&symbol)
+            for symbol in reachable_vars.clone() {
+                let prods = self.productions.iter().filter(|p| p.symbol == symbol);
+                for prod in prods {
+                    for s in &prod.value {
+                        if self.is_variable(s.as_str())
+                            && !reachable_vars.contains(s)
+                            && !new_reachable_vars.contains(s)
                         {
-                            new_reachable_vars.push(symbol);
+                            new_reachable_vars.push(s.clone());
                         }
                     }
                 }
             }
 
-            if new_reachable_vars.len() == 0 {
+            // If there are no new reachable vars, break
+            if new_reachable_vars.is_empty() {
                 break;
             }
 
-            new_reachable_vars.iter().for_each(|x| {
-                if !reachable_vars.contains(x) {
-                    reachable_vars.push(x.clone());
-                }
-            });
+            reachable_vars.extend(new_reachable_vars);
         }
 
         // Remove all variables that are not reachable
-        self.variables
-            .retain(|name, _| reachable_vars.contains(name));
+        self.productions
+            .retain(|p| reachable_vars.contains(&p.symbol));
     }
 
     fn isolate_terminals(&mut self) {
-        let variable_names: HashSet<_> = self.variables.keys().cloned().collect();
+        let variable_names: HashSet<_> =
+            self.productions.iter().map(|p| p.symbol.clone()).collect();
         let mut to_insert = Vec::new();
         let self_clone = self.clone();
 
-        for (_, var) in self.variables.iter_mut() {
-            let mut new_prod: Vec<String>;
-            for i in 0..var.productions.len() {
-                let p = &mut var.productions[i];
+        for prod in self.productions.iter_mut() {
+            let mut new_value: Vec<String>;
 
-                // Make sure terminals appear on their own
-                if !self_clone.is_isolated(p) {
-                    continue;
-                }
-
-                // Replace the terminal with a new variable
-                new_prod = p.clone();
-                p.iter().enumerate().for_each(|(i, s)| {
-                    if !variable_names.contains(s) {
-                        // Create the new var to hold this terminal
-                        let new_name = format!("{}{}", s, "`");
-                        to_insert.push((
-                            new_name.clone(),
-                            Variable {
-                                name: new_name.clone(),
-                                productions: vec![vec![s.clone()]],
-                            },
-                        ));
-
-                        // Remove the prod and replace with the new var
-                        new_prod.remove(i);
-                        new_prod.insert(i, new_name);
-                    }
-                });
-
-                *p = new_prod;
+            // Make sure terminals appear on their own
+            if !self_clone.is_isolated(&prod.value) {
+                continue;
             }
+
+            // Replace the terminal with a new variable
+            new_value = prod.value.clone();
+            prod.value.iter().enumerate().for_each(|(i, s)| {
+                if !variable_names.contains(s) {
+                    // Create the new var to hold this terminal
+                    let new_name = format!("{}{}", s, "`");
+                    to_insert.push(Production {
+                        symbol: new_name.clone(),
+                        value: vec![s.clone()],
+                    });
+
+                    // Remove the prod and replace with the new var
+                    new_value.remove(i);
+                    new_value.insert(i, new_name);
+                }
+            });
+
+            prod.value = new_value;
         }
 
-        for (new_name, variable) in to_insert {
-            self.variables.insert(new_name, variable); // <-- mutable borrow here
+        for prod in to_insert {
+            if !self.productions.contains(&prod) {
+                self.productions.push(prod);
+            }
         }
     }
 
@@ -420,45 +369,37 @@ impl CFG {
     // This will follow the similar pattern as isolate_terminals
     fn remove_long_productions(&mut self) {
         let mut to_insert = Vec::new();
-        for (_, var) in self.variables.iter_mut() {
-            for i in 0..var.productions.len() {
-                let p = &mut var.productions[i];
-
-                // If the length is longer than 2
-                if p.len() <= 2 {
-                    continue;
-                }
-
-                // Replace 2 of the variables with a new variable
-                let last2 = p.split_off(p.len() - 2);
-                let new_name = last2.join("");
-                to_insert.push((
-                    new_name.clone(),
-                    Variable {
-                        name: new_name.clone(),
-                        productions: vec![last2],
-                    },
-                ));
-
-                // Replace with the new var
-                p.push(new_name);
+        for prod in self.productions.iter_mut() {
+            // If the length is longer than 2
+            if prod.value.len() <= 2 {
+                continue;
             }
+
+            // Replace 2 of the variables with a new variable
+            let last2 = prod.value.split_off(prod.value.len() - 2);
+            let new_name = last2.join("");
+            to_insert.push(Production {
+                symbol: new_name.clone(),
+                value: last2,
+            });
+
+            // Replace with the new var
+            prod.value.push(new_name);
         }
 
-        for (new_name, variable) in to_insert {
-            self.variables.insert(new_name, variable);
+        for prod in to_insert {
+            self.productions.push(prod);
         }
     }
 }
 
-fn create_var_refs(lines: Vec<&str>) -> (String, HashMap<String, Variable>) {
-    let mut variables: HashMap<String, Variable> = HashMap::new();
+fn create_var_refs(lines: Vec<&str>) -> (String, Vec<Production>) {
+    let mut prods: Vec<Production> = Vec::new();
     let starting_variable = lines[0].split(" ").next().unwrap().to_string();
 
     for line in lines {
         // First char is the variable name
         let name = line.split(" ").next().unwrap().to_string();
-        let mut children: Vec<Vec<String>> = Vec::new();
 
         let split = line.split(" -> ");
         let children_str = split.last().unwrap();
@@ -467,23 +408,20 @@ fn create_var_refs(lines: Vec<&str>) -> (String, HashMap<String, Variable>) {
 
         // Store just the name of the children for now
         for child in children_sep {
-            let child_vec: Vec<String> = child.map(|x| x.to_string()).collect();
-            children.push(child_vec);
+            let value_vec: Vec<String> = child.map(|x| x.to_string()).collect();
+            let prod = Production {
+                symbol: name.clone(),
+                value: value_vec,
+            };
+
+            prods.push(prod);
         }
-
-        let variable = Variable {
-            name: name.clone(),
-            productions: children,
-        };
-
-        // Store the variable in the map
-        variables.insert(name, variable);
     }
 
-    (starting_variable, variables)
+    (starting_variable, prods)
 }
 
-fn read_cfg() -> (String, HashMap<String, Variable>) {
+fn read_cfg() -> (String, Vec<Production>) {
     let file_data = std::fs::read_to_string("cfg.txt").unwrap();
     create_var_refs(file_data.lines().collect())
 }
