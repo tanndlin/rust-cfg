@@ -49,7 +49,7 @@ impl TestablePattern for ExactAmountPattern {
 }
 
 pub struct BoundedAmountPattern {
-    pub tokens: Vec<char>,
+    pub token_selector: Box<dyn TokenSelector>,
     pub min_amount: usize,
     pub max_amount: usize,
 }
@@ -65,7 +65,7 @@ impl TestablePattern for BoundedAmountPattern {
 
             let c = input.chars().nth(index).unwrap();
 
-            if self.tokens.contains(&c) {
+            if self.token_selector.contains(c) {
                 amount_matched += 1;
                 index += 1;
             } else {
