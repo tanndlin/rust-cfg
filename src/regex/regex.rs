@@ -1,61 +1,7 @@
+use super::patterns::*;
+
 pub struct Regex {
     patterns: Vec<Box<dyn TestablePattern>>,
-}
-
-trait TestablePattern {
-    fn test(&self, input: &str) -> (bool, usize);
-}
-
-pub struct ExactAmountPattern {
-    tokens: Vec<char>,
-    amount: usize,
-}
-
-impl TestablePattern for ExactAmountPattern {
-    fn test(&self, input: &str) -> (bool, usize) {
-        let mut index = 0;
-        while index < self.amount {
-            let c = input.chars().nth(index).unwrap();
-
-            if self.tokens.contains(c) {
-                index += 1;
-            } else {
-                return (false, 0);
-            }
-        }
-
-        (index == self.amount, self.amount)
-    }
-}
-
-pub struct BoundedAmountPattern {
-    tokens: Vec<char>,
-    min_amount: usize,
-    max_amount: usize,
-}
-
-impl TestablePattern for BoundedAmountPattern {
-    fn test(&self, input: &str) -> (bool, usize) {
-        let mut index = 0;
-        let mut amount_matched = 0;
-        loop {
-            if index == input.len() {
-                break;
-            }
-
-            let c = input.chars().nth(index).unwrap();
-
-            if self.tokens.contains(c) {
-                amount_matched += 1;
-                index += 1;
-            } else {
-                break;
-            }
-        }
-
-        let matched = self.min_amount <= index && index <= self.max_amount;
-        (matched, amount_matched)
-    }
 }
 
 pub struct Match {

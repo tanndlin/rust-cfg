@@ -1,4 +1,4 @@
-use crate::cfg::Cfg;
+use super::cfg::Cfg;
 
 macro_rules! test {
     ($name:ident, $script:expr, $input:expr, $expected:expr) => {
