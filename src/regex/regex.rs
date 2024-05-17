@@ -70,4 +70,8 @@ mod test {
     match_pattern!(matches_atleast_one2, "0+", "00", true);
     match_pattern!(matches_optional1, "10?1", "101", true);
     match_pattern!(matches_optional2, "10?1", "11", true);
+    match_pattern!(matches_one_of1, "[abc]", "a", true);
+    match_pattern!(matches_one_of2, "[abc]", "b", true);
+    match_pattern!(matches_one_of3, "[abc]", "c", true);
+    match_pattern!(matches_one_of4, "[abc]", "d", false);
 }
