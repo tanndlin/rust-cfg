@@ -8,23 +8,7 @@ pub fn parse_regex(pattern: &str) -> Regex {
     let mut i = 0;
     while i < chars.len() {
         let token_selector = parse_token_selector(&chars, &mut i);
-        if i < chars.len() && chars[i] == '{' {
-            let (min, max) = parse_number_specifier(&chars, &mut i);
-            patterns.push(Box::new(BoundedAmountPattern {
-                token_selector,
-                min_amount: min,
-                max_amount: max,
-            }));
-
-            continue;
-        }
-
-        patterns.push(Box::new(ExactAmountPattern {
-            token_selector,
-            amount: 1,
-        }));
-
-        continue;
+        patterns.push(parse_amount_specifier(&chars, &mut i, token_selector));
     }
 
     Regex { patterns }
@@ -68,6 +52,26 @@ fn parse_number_specifier(chars: &[char], i: &mut usize) -> (usize, usize) {
         min_str.parse::<usize>().unwrap(),
         max_str.parse::<usize>().unwrap(),
     )
+}
+
+fn parse_amount_specifier(
+    chars: &[char],
+    i: &mut usize,
+    token_selector: Box<dyn TokenSelector>,
+) -> Box<dyn TestablePattern> {
+    if *i < chars.len() && chars[*i] == '{' {
+        let (min, max) = parse_number_specifier(chars, i);
+        return Box::new(BoundedAmountPattern {
+            token_selector,
+            min_amount: min,
+            max_amount: max,
+        });
+    }
+
+    Box::new(ExactAmountPattern {
+        token_selector,
+        amount: 1,
+    })
 }
 
 fn consume_char(input: char, expected: char, index: &mut usize) {
