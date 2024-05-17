@@ -309,19 +309,21 @@ impl Cfg {
 
     fn create_triplets(&mut self) {
         for (a, a_prod) in self.productions.iter().enumerate() {
-            if a_prod.value.len() == 2 {
-                for (b, b_prod) in self.productions.iter().enumerate() {
-                    if a_prod.value[0] != b_prod.symbol {
+            if !a_prod.value.len() < 2 {
+                continue;
+            }
+
+            for (b, b_prod) in self.productions.iter().enumerate() {
+                if a_prod.value[0] != b_prod.symbol {
+                    continue;
+                }
+
+                for (c, c_prod) in self.productions.iter().enumerate() {
+                    if a_prod.value[1] != c_prod.symbol {
                         continue;
                     }
 
-                    for (c, c_prod) in self.productions.iter().enumerate() {
-                        if a_prod.value[1] != c_prod.symbol {
-                            continue;
-                        }
-
-                        self.triplets.push((a, b, c));
-                    }
+                    self.triplets.push((a, b, c));
                 }
             }
         }
