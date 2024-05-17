@@ -47,7 +47,7 @@ fn parse_regex(pattern: &str) -> Regex {
         let c = chars[i];
         if i == chars.len() - 1 || chars[i + 1] != '{' {
             regex.patterns.push(Box::new(ExactAmountPattern {
-                tokens: vec![c],
+                token_selector: Box::new(SingleCharSelector { token: c }),
                 amount: 1,
             }));
 
@@ -104,7 +104,7 @@ macro_rules! match_pattern {
 }
 
 #[cfg(test)]
-mod regex_tests {
+mod test {
     use super::*;
 
     match_pattern!(matches_single_char, "1", "1", true);
