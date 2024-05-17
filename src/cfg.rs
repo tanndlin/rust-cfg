@@ -370,20 +370,18 @@ impl CFG {
         let mut to_insert = Vec::new();
         for prod in self.productions.iter_mut() {
             // If the length is longer than 2
-            if prod.value.len() <= 2 {
-                continue;
+            while prod.value.len() > 2 {
+                // Replace 2 of the variables with a new variable
+                let last2 = prod.value.split_off(prod.value.len() - 2);
+                let new_name = last2.join("");
+                to_insert.push(Production {
+                    symbol: new_name.clone(),
+                    value: last2,
+                });
+
+                // Replace with the new var
+                prod.value.push(new_name);
             }
-
-            // Replace 2 of the variables with a new variable
-            let last2 = prod.value.split_off(prod.value.len() - 2);
-            let new_name = last2.join("");
-            to_insert.push(Production {
-                symbol: new_name.clone(),
-                value: last2,
-            });
-
-            // Replace with the new var
-            prod.value.push(new_name);
         }
 
         for prod in to_insert {
