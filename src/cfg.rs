@@ -2,6 +2,7 @@ use crate::production::Production;
 use rand::seq::SliceRandom;
 use std::collections::HashSet;
 
+#[allow(dead_code)]
 #[derive(Debug, Clone)]
 pub struct Cfg {
     starting_variable: String,
@@ -9,6 +10,7 @@ pub struct Cfg {
     triplets: Vec<(usize, usize, usize)>,
 }
 
+#[allow(dead_code)]
 impl Cfg {
     pub fn new(input: &str) -> Cfg {
         let mut cfg = read_cfg(input);
@@ -329,6 +331,7 @@ impl Cfg {
         }
     }
 
+    #[allow(dead_code)]
     pub fn generate_sample_langauge(&self, n: usize) -> Vec<String> {
         let mut sample_strings = Vec::new();
         for _ in 0..n {
