@@ -12,12 +12,16 @@ fn main() {
 
     // Read a string from input.txt
     let input = std::fs::read_to_string("input.txt").unwrap();
-    let input = input.trim();
+    let input = input.trim().split(" ").collect();
 
     // Test the string against the CFG
-    println!("Testing string: {}", input);
+    println!("Testing string: {:?}", input);
     println!("Result: {}", cfg.test(input));
 
-    let sample = cfg.generate_sample_langauge(5);
-    println!("Sample: {:?}", sample);
+    // let sample = cfg.generate_sample_langauge(10);
+
+    // println!("Sample language:");
+    // for s in sample.iter() {
+    //     println!("{}", s);
+    // }
 }

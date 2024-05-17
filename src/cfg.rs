@@ -120,7 +120,7 @@ impl CFG {
     }
 
     // Tests if the string exists using the CYK algorithm
-    pub fn test(&self, input: &str) -> bool {
+    pub fn test(&self, input: Vec<&str>) -> bool {
         let n = input.len();
         if n == 0 {
             return false;
@@ -133,15 +133,12 @@ impl CFG {
         // let backpointing = vec![vec![vec![vec![]]; n]; n];
 
         for s in 0..n {
-            let a = input.chars().nth(s).unwrap().to_string();
+            let a = &input[s];
             // Find a R_v s.t. R_v -> a_s
             for v in 0..r {
                 let prod = &self.productions[v];
-                if prod.value.len() == 1 {
-                    if prod.value[0] == a {
-                        let index = self.find_index(&prod.symbol);
-                        table[s][0][index] = true;
-                    }
+                if prod.value.len() == 1 && prod.value[0] == a.to_string() {
+                    table[0][s][v] = true;
                 }
             }
         }
@@ -152,14 +149,23 @@ impl CFG {
             for s in 0..(n - l) {
                 // Partition of span
                 for p in 0..l {
-                    for prod in &self.productions {
+                    for (a, prod) in self.productions.iter().enumerate() {
                         if prod.value.len() == 2 {
-                            let a = self.find_index(&prod.symbol);
-                            let b = self.find_index(&prod.value[0]);
-                            let c = self.find_index(&prod.value[1]);
-
-                            if table[s][p][b] && table[s + p + 1][l - p - 1][c] {
-                                table[s][l][a] = true;
+                            for (b, b_prod) in self.productions.iter().enumerate() {
+                                if prod.value[0] == b_prod.symbol {
+                                    for (c, c_prod) in self.productions.iter().enumerate() {
+                                        if prod.value[1] == c_prod.symbol {
+                                            // If we can make the left and right
+                                            // It could be dervied from the current production
+                                            let can_make_left = table[p][s][b];
+                                            let can_make_right = table[l - p - 1][s + p + 1][c];
+                                            if can_make_left && can_make_right {
+                                                // substring of length l start at s can be made from rule a
+                                                table[l][s][a] = true;
+                                            }
+                                        }
+                                    }
+                                }
                             }
                         }
                     }
@@ -167,8 +173,20 @@ impl CFG {
             }
         }
 
-        let start_symbol_index = self.find_index(&self.starting_variable);
-        return table[0][n - 1][start_symbol_index];
+        self.print();
+
+        // println!("Table: {:?}", table);
+        // println!("Length: 1: {:?}", table[0]);
+        // println!("Length: 2: {:?}", table[1]);
+
+        // If any start symbol leads to the input string, return true
+        for (idx, prod) in self.productions.iter().enumerate() {
+            if prod.symbol == self.starting_variable && table[n - 1][0][idx] {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     fn to_cnf(&mut self) {
@@ -190,6 +208,11 @@ impl CFG {
 
         // Step 4: Remove variables with more than 2 variables
         self.remove_long_productions();
+
+        // Some sanity checking
+        self.productions.iter().for_each(|p| {
+            assert!(p.value.len() <= 2);
+        });
     }
 
     fn remove_start_symbol(&mut self) {
@@ -270,6 +293,10 @@ impl CFG {
 
         // Remove the unit production
         self.productions.retain(|p| !should_remove(p));
+
+        if productions_to_add.is_empty() {
+            return;
+        }
 
         productions_to_add
             .iter()
