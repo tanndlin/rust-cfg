@@ -76,6 +76,7 @@ fn permute_without(strings: Vec<String>, to_remove: &str) -> Vec<Vec<String>> {
 pub struct CFG {
     starting_variable: String,
     productions: Vec<Production>,
+    triplets: Vec<(usize, usize, usize)>,
 }
 
 impl CFG {
@@ -84,24 +85,6 @@ impl CFG {
         cfg.to_cnf();
 
         cfg
-    }
-
-    fn find_index(&self, symbol: &String) -> usize {
-        for (i, prod) in self.productions.iter().enumerate() {
-            if prod.value.len() == 2 {
-                if symbol == &prod.symbol {
-                    return i;
-                }
-            }
-        }
-
-        for (i, prod) in self.productions.iter().enumerate() {
-            if symbol == &prod.symbol {
-                return i;
-            }
-        }
-
-        panic!("Expected to find index for variable: {}", symbol);
     }
 
     fn is_variable(&self, name: &str) -> bool {
@@ -149,24 +132,14 @@ impl CFG {
             for s in 0..(n - l) {
                 // Partition of span
                 for p in 0..l {
-                    for (a, prod) in self.productions.iter().enumerate() {
-                        if prod.value.len() == 2 {
-                            for (b, b_prod) in self.productions.iter().enumerate() {
-                                if prod.value[0] == b_prod.symbol {
-                                    for (c, c_prod) in self.productions.iter().enumerate() {
-                                        if prod.value[1] == c_prod.symbol {
-                                            // If we can make the left and right
-                                            // It could be dervied from the current production
-                                            let can_make_left = table[p][s][b];
-                                            let can_make_right = table[l - p - 1][s + p + 1][c];
-                                            if can_make_left && can_make_right {
-                                                // substring of length l start at s can be made from rule a
-                                                table[l][s][a] = true;
-                                            }
-                                        }
-                                    }
-                                }
-                            }
+                    for (a, b, c) in self.triplets.iter() {
+                        // If we can make the left and right
+                        // It could be dervied from the current production
+                        let can_make_left = table[p][s][*b];
+                        let can_make_right = table[l - p - 1][s + p + 1][*c];
+                        if can_make_left && can_make_right {
+                            // substring of length l start at s can be made from rule a
+                            table[l][s][*a] = true;
                         }
                     }
                 }
@@ -213,6 +186,8 @@ impl CFG {
         self.productions.iter().for_each(|p| {
             assert!(p.value.len() <= 2);
         });
+
+        self.create_triplets();
     }
 
     fn remove_start_symbol(&mut self) {
@@ -419,6 +394,26 @@ impl CFG {
         }
     }
 
+    fn create_triplets(&mut self) {
+        for (a, a_prod) in self.productions.iter().enumerate() {
+            if a_prod.value.len() == 2 {
+                for (b, b_prod) in self.productions.iter().enumerate() {
+                    if a_prod.value[0] != b_prod.symbol {
+                        continue;
+                    }
+
+                    for (c, c_prod) in self.productions.iter().enumerate() {
+                        if a_prod.value[1] != c_prod.symbol {
+                            continue;
+                        }
+
+                        self.triplets.push((a, b, c));
+                    }
+                }
+            }
+        }
+    }
+
     pub fn generate_sample_langauge(&self, n: usize) -> Vec<String> {
         let mut sample_strings = Vec::new();
         for _ in 0..n {
@@ -480,6 +475,7 @@ fn read_cfg(input: &str) -> CFG {
     CFG {
         starting_variable,
         productions: prods,
+        triplets: vec![],
     }
 }
 
