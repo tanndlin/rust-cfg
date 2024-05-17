@@ -17,7 +17,7 @@ impl TestablePattern for ExactAmountPattern {
         while index < self.amount {
             let c = input.chars().nth(index).unwrap();
 
-            if self.tokens.iter().any(|t| t == &c) {
+            if self.tokens.contains(c) {
                 index += 1;
             } else {
                 return (false, 0);
@@ -25,6 +25,36 @@ impl TestablePattern for ExactAmountPattern {
         }
 
         (index == self.amount, self.amount)
+    }
+}
+
+pub struct BoundedAmountPattern {
+    tokens: Vec<char>,
+    min_amount: usize,
+    max_amount: usize,
+}
+
+impl TestablePattern for BoundedAmountPattern {
+    fn test(&self, input: &str) -> (bool, usize) {
+        let mut index = 0;
+        let mut amount_matched = 0;
+        loop {
+            if index == input.len() {
+                break;
+            }
+
+            let c = input.chars().nth(index).unwrap();
+
+            if self.tokens.contains(c) {
+                amount_matched += 1;
+                index += 1;
+            } else {
+                break;
+            }
+        }
+
+        let matched = self.min_amount <= index && index <= self.max_amount;
+        (matched, amount_matched)
     }
 }
 
@@ -64,15 +94,55 @@ impl Regex {
 
 fn parse_regex(pattern: &str) -> Regex {
     let mut regex = Regex { patterns: vec![] };
+    let chars: Vec<_> = pattern.chars().collect();
 
-    for c in pattern.chars() {
-        regex.patterns.push(Box::new(ExactAmountPattern {
-            tokens: vec![c],
-            amount: 1,
+    let mut i = 0;
+    while i < chars.len() {
+        let c = chars[i];
+        if i == chars.len() - 1 || chars[i + 1] != '{' {
+            regex.patterns.push(Box::new(ExactAmountPattern {
+                tokens: vec![c],
+                amount: 1,
+            }));
+
+            i += 1;
+            continue;
+        }
+
+        let token = chars[i];
+        i += 1;
+
+        consume_char(chars[i], '{', &mut i);
+        let mut min_str = String::new();
+        while chars[i].is_ascii_digit() {
+            min_str.push(chars[i]);
+            i += 1;
+        }
+
+        consume_char(chars[i], ',', &mut i);
+        let mut max_str = String::new();
+        while chars[i].is_ascii_digit() {
+            max_str.push(chars[i]);
+            i += 1;
+        }
+        consume_char(chars[i], '}', &mut i);
+
+        regex.patterns.push(Box::new(BoundedAmountPattern {
+            tokens: vec![token],
+            min_amount: min_str.parse::<usize>().unwrap(),
+            max_amount: max_str.parse::<usize>().unwrap(),
         }))
     }
 
     regex
+}
+
+fn consume_char(input: char, expected: char, index: &mut usize) {
+    if input != expected {
+        panic!("Expected {}. Got {}", expected, input);
+    }
+
+    *index += 1;
 }
 
 macro_rules! match_pattern {
@@ -93,6 +163,10 @@ mod regex_tests {
 
     match_pattern!(matches_single_char, "1", "1", true);
     match_pattern!(does_not_match_single_char, "1", "0", false);
-    match_pattern!(matches_multiple_chars, "12", "12", true);
-    match_pattern!(matches_multiple_chars2, "123", "123", true);
+    match_pattern!(matches_multiple_chars, "123", "123", true);
+    match_pattern!(matches_range_of_chars2, "1{2,4}", "11", true);
+    match_pattern!(matches_range_of_chars3, "1{2,4}", "111", true);
+    match_pattern!(matches_range_of_chars4, "1{2,4}", "111", true);
+    match_pattern!(matches_range_of_chars5, "1{2,4}", "11111", true);
+    match_pattern!(matches_slice, "1{2,2}", "3113", true);
 }
