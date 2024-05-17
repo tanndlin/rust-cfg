@@ -13,7 +13,7 @@ impl CFG {
     pub fn new(input: &str) -> CFG {
         let mut cfg = read_cfg(input);
         cfg.to_cnf();
-
+        cfg.create_triplets();
         cfg
     }
 
@@ -110,8 +110,6 @@ impl CFG {
         self.productions.iter().for_each(|p| {
             assert!(p.value.len() <= 2);
         });
-
-        self.create_triplets();
     }
 
     fn remove_start_symbol(&mut self) {
