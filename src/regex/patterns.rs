@@ -101,3 +101,27 @@ impl TestablePattern for AnyAmountPattern {
         (true, amount_matched)
     }
 }
+
+pub struct AtLeastOnePattern {
+    pub token_selector: Box<dyn TokenSelector>,
+}
+
+impl TestablePattern for AtLeastOnePattern {
+    fn test(&self, input: &str) -> (bool, usize) {
+        let mut amount_matched = 0;
+        loop {
+            if amount_matched == input.len() {
+                break;
+            }
+
+            let c = input.chars().nth(amount_matched).unwrap();
+            if self.token_selector.contains(c) {
+                amount_matched += 1;
+            } else {
+                break;
+            }
+        }
+
+        (amount_matched > 0, amount_matched)
+    }
+}
