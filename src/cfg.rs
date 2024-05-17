@@ -120,7 +120,6 @@ impl CFG {
             .iter()
             .any(|prod| prod.value.contains(&self.starting_variable));
 
-        // TODO We need to smartly generate variables later
         if contains_start {
             let old_starting_var = self.starting_variable.clone();
 
