@@ -27,4 +27,5 @@
             ]
         }
     ],
+    "restoreTerminals.runOnStartup": true
 }
