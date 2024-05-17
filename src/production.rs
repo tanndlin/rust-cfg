@@ -72,8 +72,8 @@ fn test_permute_without() {
         'A'.to_string(),
         'C'.to_string(),
     ];
-    let output = permute_without(input, "A").sort();
-    let expected = vec![
+    let mut output = permute_without(input, "A");
+    let mut expected = vec![
         vec![
             'A'.to_string(),
             'B'.to_string(),
@@ -83,8 +83,9 @@ fn test_permute_without() {
         vec!['B'.to_string(), 'A'.to_string(), 'C'.to_string()],
         vec!['B'.to_string(), 'C'.to_string()],
         vec!['A'.to_string(), 'B'.to_string(), 'C'.to_string()],
-    ]
-    .sort();
+    ];
 
+    output.sort();
+    expected.sort();
     assert_eq!(output, expected);
 }
