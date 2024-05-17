@@ -158,40 +158,36 @@ impl CFG {
     }
 
     fn remove_unit_productions(&mut self) {
-        let mut unit_production_pairs: Vec<(String, String)> = vec![];
+        let mut unit_production_pairs: Vec<Production> = vec![];
         let mut productions_to_add: Vec<Production> = vec![];
 
+        // S -> A
         self.productions.iter().for_each(|prod| {
             if prod.value.len() == 1 && self.is_variable(prod.value[0].as_str()) {
-                unit_production_pairs.push((prod.symbol.clone(), prod.value[0].clone()))
+                unit_production_pairs.push(prod.clone());
             }
         });
 
-        // Add all the productions of the result to the parent and remove the unit production
-        for (unit_name, unit_prod) in unit_production_pairs.clone() {
-            let productions_from_unit = self.productions.iter().filter(|p| p.symbol == unit_prod);
-            for prod in productions_from_unit {
+        // Remove the unit production
+        self.productions
+            .retain(|p| !unit_production_pairs.contains(p));
+
+        // Add all the productions of the result to the parent
+        for unit_prod in unit_production_pairs {
+            let new_productions = self
+                .productions
+                .iter()
+                .filter(|p| p.symbol == unit_prod.value[0]);
+
+            for prod in new_productions {
                 productions_to_add.push(Production {
-                    symbol: unit_name.clone(),
+                    symbol: unit_prod.symbol.clone(),
                     value: prod.value.clone(),
                 })
             }
         }
 
-        let should_remove = |p: &Production| -> bool {
-            if p.value.len() > 1 {
-                return false;
-            }
-
-            // Check if name and value are in unit_production_pairs
-            return unit_production_pairs
-                .iter()
-                .any(|(name, value)| &p.symbol == name && &p.value[0] == value);
-        };
-
-        // Remove the unit production
-        self.productions.retain(|p| !should_remove(p));
-
+        // If nothing was done, return
         if productions_to_add.is_empty() {
             return;
         }
