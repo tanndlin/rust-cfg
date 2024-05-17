@@ -4,16 +4,16 @@ mod production;
 #[cfg(test)]
 mod test;
 
-use crate::cfg::CFG;
+use crate::cfg::Cfg;
 
 fn main() {
     let cfg_txt = std::fs::read_to_string("cfg.txt").unwrap();
 
-    let cfg = CFG::new(&cfg_txt);
+    let cfg = Cfg::new(&cfg_txt);
 
     // Read a string from input.txt
     let input = std::fs::read_to_string("input.txt").unwrap();
-    let input = input.trim().split(" ").collect();
+    let input = input.trim().split(' ').collect();
 
     // Test the string against the CFG
     println!("Testing string: {:?}", input);

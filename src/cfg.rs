@@ -3,24 +3,22 @@ use rand::seq::SliceRandom;
 use std::collections::HashSet;
 
 #[derive(Debug, Clone)]
-pub struct CFG {
+pub struct Cfg {
     starting_variable: String,
     productions: Vec<Production>,
     triplets: Vec<(usize, usize, usize)>,
 }
 
-impl CFG {
-    pub fn new(input: &str) -> CFG {
+impl Cfg {
+    pub fn new(input: &str) -> Cfg {
         let mut cfg = read_cfg(input);
-        cfg.to_cnf();
+        cfg.convert_to_cnf();
         cfg.create_triplets();
         cfg
     }
 
     fn is_variable(&self, name: &str) -> bool {
-        self.productions
-            .iter()
-            .any(|p| p.symbol == name.to_string())
+        self.productions.iter().any(|p| p.symbol == *name)
     }
 
     #[allow(dead_code)]
@@ -45,12 +43,10 @@ impl CFG {
         let mut table = vec![vec![vec![false; r]; n]; n];
         // let backpointing = vec![vec![vec![vec![]]; n]; n];
 
-        for s in 0..n {
-            let a = &input[s];
+        for (s, a) in input.iter().enumerate() {
             // Find a R_v s.t. R_v -> a_s
-            for v in 0..r {
-                let prod = &self.productions[v];
-                if prod.value.len() == 1 && prod.value[0] == a.to_string() {
+            for (v, prod) in self.productions.iter().enumerate() {
+                if prod.value.len() == 1 && prod.value[0] == *a {
                     table[0][s][v] = true;
                 }
             }
@@ -83,10 +79,10 @@ impl CFG {
             }
         }
 
-        return false;
+        false
     }
 
-    fn to_cnf(&mut self) {
+    fn convert_to_cnf(&mut self) {
         // Step 1: Remove the start symbol from the RHS
         self.remove_start_symbol();
 
@@ -284,7 +280,7 @@ impl CFG {
             }
         }
 
-        return false;
+        false
     }
 
     // This will follow the similar pattern as isolate_terminals
@@ -358,24 +354,24 @@ impl CFG {
             }
         }
 
-        return s.join("");
+        s.join("")
     }
 }
 
-fn read_cfg(input: &str) -> CFG {
+fn read_cfg(input: &str) -> Cfg {
     let lines: Vec<&str> = input.lines().collect();
 
     let mut prods: Vec<Production> = Vec::new();
-    let starting_variable = lines[0].split(" ").next().unwrap().to_string();
+    let starting_variable = lines[0].split(' ').next().unwrap().to_string();
 
     for line in lines {
         // First char is the variable name
-        let name = line.split(" ").next().unwrap().to_string();
+        let name = line.split(' ').next().unwrap().to_string();
 
         let split = line.split(" -> ");
         let children_str = split.last().unwrap();
 
-        let children_sep = children_str.split(" | ").map(|x| x.trim().split(" "));
+        let children_sep = children_str.split(" | ").map(|x| x.trim().split(' '));
 
         // Store just the name of the children for now
         for child in children_sep {
@@ -389,7 +385,7 @@ fn read_cfg(input: &str) -> CFG {
         }
     }
 
-    CFG {
+    Cfg {
         starting_variable,
         productions: prods,
         triplets: vec![],

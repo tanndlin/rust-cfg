@@ -16,7 +16,7 @@ impl Production {
         let mut new_prods: HashSet<Production> = HashSet::new();
 
         // Add all productions with nullable prod removed
-        permute_without(self.value.clone(), &nullable_name)
+        permute_without(self.value.clone(), nullable_name)
             .iter()
             .filter(|vec| !vec.is_empty())
             .map(|vec| Production {

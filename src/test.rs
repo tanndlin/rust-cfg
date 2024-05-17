@@ -1,10 +1,10 @@
-use crate::cfg::CFG;
+use crate::cfg::Cfg;
 
 macro_rules! test {
     ($name:ident, $script:expr, $input:expr, $expected:expr) => {
         #[test]
         fn $name() {
-            let cfg = CFG::new($script);
+            let cfg = Cfg::new($script);
             assert_eq!(cfg.test($input), $expected);
         }
     };
@@ -59,27 +59,27 @@ test!(
 
 #[test]
 fn zeroes_then_ones() {
-    let cfg = CFG::new("S -> 0 S 1 | #");
-    assert_eq!(cfg.test(split!("01")), true);
-    assert_eq!(cfg.test(split!("0011")), true);
-    assert_eq!(cfg.test(split!("000111")), true);
-    assert_eq!(cfg.test(split!("0000111")), false);
+    let cfg = Cfg::new("S -> 0 S 1 | #");
+    assert!(cfg.test(split!("01")));
+    assert!(cfg.test(split!("0011")));
+    assert!(cfg.test(split!("000111")));
+    assert!(!cfg.test(split!("0000111")));
 }
 
 #[test]
 fn random_binary() {
-    let cfg = CFG::new("S -> 0 S | 1 S | #");
-    assert_eq!(cfg.test(split!("012")), false);
-    assert_eq!(cfg.test(split!("000111")), true);
-    assert_eq!(cfg.test(split!("10100101001")), true);
-    assert_eq!(cfg.test(split!("101001010011")), true);
+    let cfg = Cfg::new("S -> 0 S | 1 S | #");
+    assert!(!cfg.test(split!("012")));
+    assert!(cfg.test(split!("000111")));
+    assert!(cfg.test(split!("10100101001")));
+    assert!(cfg.test(split!("101001010011")));
 }
 
 #[test]
 fn any_zeroes_then_ones() {
-    let cfg = CFG::new("S -> Z O\nZ -> 0 Z | #\nO -> 1 O | #");
-    assert_eq!(cfg.test(split!("01")), true);
-    assert_eq!(cfg.test(split!("00111111")), true);
-    assert_eq!(cfg.test(split!("000000111")), true);
-    assert_eq!(cfg.test(split!("00001110")), false);
+    let cfg = Cfg::new("S -> Z O\nZ -> 0 Z | #\nO -> 1 O | #");
+    assert!(cfg.test(split!("01")));
+    assert!(cfg.test(split!("00111111")));
+    assert!(cfg.test(split!("000000111")));
+    assert!(!cfg.test(split!("00001110")));
 }
