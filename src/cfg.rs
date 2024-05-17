@@ -76,12 +76,6 @@ impl CFG {
             }
         }
 
-        self.print();
-
-        // println!("Table: {:?}", table);
-        // println!("Length: 1: {:?}", table[0]);
-        // println!("Length: 2: {:?}", table[1]);
-
         // If any start symbol leads to the input string, return true
         for (idx, prod) in self.productions.iter().enumerate() {
             if prod.symbol == self.starting_variable && table[n - 1][0][idx] {

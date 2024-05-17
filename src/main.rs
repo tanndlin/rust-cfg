@@ -19,10 +19,10 @@ fn main() {
     println!("Testing string: {:?}", input);
     println!("Result: {}", cfg.test(input));
 
-    // let sample = cfg.generate_sample_langauge(10);
+    let sample = cfg.generate_sample_langauge(10);
 
-    // println!("Sample language:");
-    // for s in sample.iter() {
-    //     println!("{}", s);
-    // }
+    println!("Sample language:");
+    for s in sample.iter() {
+        println!("{}", s);
+    }
 }
