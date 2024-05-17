@@ -63,4 +63,7 @@ mod test {
     match_pattern!(matches_range_of_chars4, "1{2,4}", "111", true);
     match_pattern!(matches_range_of_chars5, "1{2,4}", "11111", true);
     match_pattern!(matches_slice, "1{2,2}", "3113", true);
+    match_pattern!(matches_any_amount1, "1*", "01", true);
+    match_pattern!(matches_any_amount2, "1*", "0", true);
+    match_pattern!(matches_any_amount3, "01*2", "011112", true);
 }

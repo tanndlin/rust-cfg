@@ -77,3 +77,27 @@ impl TestablePattern for BoundedAmountPattern {
         (matched, amount_matched)
     }
 }
+
+pub struct AnyAmountPattern {
+    pub token_selector: Box<dyn TokenSelector>,
+}
+
+impl TestablePattern for AnyAmountPattern {
+    fn test(&self, input: &str) -> (bool, usize) {
+        let mut amount_matched = 0;
+        loop {
+            if amount_matched == input.len() {
+                break;
+            }
+
+            let c = input.chars().nth(amount_matched).unwrap();
+            if self.token_selector.contains(c) {
+                amount_matched += 1;
+            } else {
+                break;
+            }
+        }
+
+        (true, amount_matched)
+    }
+}

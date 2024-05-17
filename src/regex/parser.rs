@@ -59,19 +59,27 @@ fn parse_amount_specifier(
     i: &mut usize,
     token_selector: Box<dyn TokenSelector>,
 ) -> Box<dyn TestablePattern> {
-    if *i < chars.len() && chars[*i] == '{' {
-        let (min, max) = parse_number_specifier(chars, i);
-        return Box::new(BoundedAmountPattern {
-            token_selector,
-            min_amount: min,
-            max_amount: max,
-        });
-    }
+    let next_char = chars.get(*i).unwrap_or(&'\0');
 
-    Box::new(ExactAmountPattern {
-        token_selector,
-        amount: 1,
-    })
+    match next_char {
+        '*' => {
+            *i += 1;
+            Box::new(AnyAmountPattern { token_selector })
+        }
+        '{' => {
+            let (min, max) = parse_number_specifier(chars, i);
+            Box::new(BoundedAmountPattern {
+                token_selector,
+                min_amount: min,
+                max_amount: max,
+            })
+        }
+
+        _ => Box::new(ExactAmountPattern {
+            token_selector,
+            amount: 1,
+        }),
+    }
 }
 
 fn consume_char(input: char, expected: char, index: &mut usize) {
