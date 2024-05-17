@@ -132,7 +132,7 @@ impl CFG {
     }
 
     fn remove_null_productions(&mut self) {
-        let nullable_names: Vec<_> = self
+        let nullable_names: HashSet<_> = self
             .productions
             .iter()
             .filter(|p| p.is_null())
